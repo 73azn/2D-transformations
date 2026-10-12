@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matrix Range</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: header, numbered chapter path (levels in slide order), three tabs. Armory = the wall. Trainer = coach lesson. Range = bench on top, moving targets below. */
+:root{
+  --bg:#E7EAE3;--panel:#F5F6F1;--ink:#14201F;--muted:#4F5E5C;--line:#C2CAC0;
+  --wall:#D3DBD1;--grid:#BAC5B8;--accent:#C93F12;--on-accent:#FFFFFF;
+  --good:#17653F;--bad:#B3261E;--focus:#1B55C9;--face:#FBFBF6;--tink:#14201F;
+  --font-display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1413;--panel:#15201E;--ink:#E6EEE9;--muted:#9AABA6;--line:#2B3C39;
+    --wall:#1A2927;--grid:#233633;--accent:#FF7A4D;--on-accent:#14201F;
+    --good:#5FD08F;--bad:#FF8F86;--focus:#7FA6FF;--face:#EEF2EA;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1413;--panel:#15201E;--ink:#E6EEE9;--muted:#9AABA6;--line:#2B3C39;
+  --wall:#1A2927;--grid:#233633;--accent:#FF7A4D;--on-accent:#14201F;
+  --good:#5FD08F;--bad:#FF8F86;--focus:#7FA6FF;--face:#EEF2EA;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.muted{color:var(--muted)}
+h1{font:800 clamp(38px,8vw,60px)/0.95 var(--font-display);letter-spacing:.02em;text-transform:uppercase;margin:0}
+h2{font:700 26px/1.1 var(--font-display);letter-spacing:.03em;text-transform:uppercase;margin:0 0 6px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.tag{margin:6px 0 0;color:var(--muted);font-size:14px;letter-spacing:.02em}
+.best{margin:0;font:500 13px var(--font-mono);color:var(--muted)}
+.lab{margin:0;font:600 12px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rack{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:6px 0 14px}
+.rack.locked{opacity:.55;pointer-events:none}
+.wp{display:grid;grid-template-columns:26px minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;min-width:0;align-items:center;text-align:left;padding:8px 10px;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;cursor:pointer}
+.wp svg{grid-row:1 / 3;width:26px;height:26px}
+.wp .wn{font:700 16px/1.1 var(--font-display);letter-spacing:.02em;text-transform:uppercase;display:flex;align-items:center;gap:5px;min-width:0}
+.wp .num{display:inline-flex;width:19px;height:19px;border-radius:50%;align-items:center;justify-content:center;font:600 11px var(--font-mono);background:var(--ink);color:var(--bg);letter-spacing:0}
+.wp .wo{font-size:12px;color:var(--muted)}
+.wp[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.wp[aria-pressed="true"] .wo{color:inherit;opacity:.9}
+.wp[aria-pressed="true"] .num{background:var(--on-accent);color:var(--accent)}
+.wp:disabled{opacity:.4;cursor:not-allowed}
+.tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1.5px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1.5px;padding:8px 14px;cursor:pointer;font:700 18px var(--font-display);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:16px}
+.btn{background:var(--panel);border:1.5px solid var(--ink);border-radius:10px;padding:9px 16px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.actions .grow{flex:1}
+
+/* the wall */
+.wall{background:var(--wall);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;border:1.5px solid var(--line);border-radius:14px;padding:18px}
+.wlab{margin:0 0 10px;font:600 12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.wline{font:500 clamp(20px,4.6vw,30px)/1.35 var(--font-mono)}
+.wline.sm{font-size:clamp(15px,3.6vw,19px);line-height:1.6}
+.wmat{margin:12px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font:500 clamp(16px,3.6vw,22px) var(--font-mono)}
+.traps{margin:12px 0 0;padding-left:18px;font-size:14px}
+.traps li{margin:3px 0}
+.wtable{width:100%;border-collapse:collapse;margin-top:12px;font:500 14px var(--font-mono)}
+.wtable th,.wtable td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.wtable th{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tscroll{overflow-x:auto}
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.node{border:1.5px solid var(--ink);border-radius:8px;padding:6px 10px;font:500 14px var(--font-mono);background:var(--panel)}
+.node.hi{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.arrow{font:500 14px var(--font-mono);color:var(--muted)}
+
+/* matrices and slots */
+.mat{display:inline-grid;grid-template-columns:repeat(var(--c,2),auto);gap:6px 16px;padding:5px 12px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px;font-family:var(--font-mono);vertical-align:middle}
+.mc{display:inline-flex;align-items:center;justify-content:center;min-width:2ch;white-space:nowrap}
+.mc.slotc{min-width:46px;height:36px;border:2px dashed var(--line);border-radius:8px;padding:0 6px}
+.mc.slotc.on{border:2px solid var(--accent)}
+.mc.slotc.filled{border:2px solid var(--ink);background:var(--panel)}
+
+/* coach and trainer */
+.coach{display:flex;gap:12px;align-items:flex-start}
+.who{margin:0;font:700 13px var(--font-display);letter-spacing:.14em;text-transform:uppercase;color:var(--on-accent);background:var(--accent);border-radius:6px;padding:3px 8px}
+.say{margin:0;font-size:18px;line-height:1.5;max-width:62ch}
+.show{margin-top:14px;min-height:130px}
+.eqs{display:grid;gap:10px}
+.eqline{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:500 clamp(16px,3.6vw,22px) var(--font-mono)}
+
+/* range */
+.missionbar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.mission{margin:0;font:700 clamp(20px,4vw,26px)/1.2 var(--font-display);letter-spacing:.03em}
+.score{margin:0;font:500 13px var(--font-mono);color:var(--muted)}
+.bench{display:grid;gap:12px;margin-top:12px}
+.brow{display:grid;grid-template-columns:78px 1fr;gap:10px;align-items:start}
+.blab{font:600 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:9px}
+.bval{display:grid;gap:8px;min-width:0}
+.eqrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font:500 17px var(--font-mono)}
+.lhs{min-width:3ch}
+.given{font:500 17px var(--font-mono)}
+.given.dim{color:var(--muted)}
+.op{font:500 18px var(--font-mono);padding:0 2px}
+.slot{display:inline-flex;min-width:46px;height:36px;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:8px;padding:0 8px;font:500 17px var(--font-mono)}
+.slot.on{border:2px solid var(--accent)}
+.slot.filled{border:2px solid var(--ink);background:var(--panel)}
+.coachline{min-height:26px;margin:12px 0 8px;font-weight:500}
+.coachline.bad{color:var(--bad)}
+.coachline.good{color:var(--good)}
+.lanes{position:relative;height:244px;overflow:hidden;border:1.5px solid var(--line);border-radius:14px;background:var(--wall);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;cursor:crosshair}
+.tgt{position:absolute;left:0;top:0;width:66px;height:66px;border:0;border-radius:50%;padding:0;cursor:crosshair;color:var(--tink);font:600 18px var(--font-mono);white-space:nowrap;
+  background:radial-gradient(circle at center,var(--face) 0 50%,var(--accent) 51% 61%,var(--face) 62% 75%,var(--tink) 76% 100%)}
+.tgt.plaque{width:auto;min-width:64px;height:44px;border-radius:10px;padding:0 14px;font-size:16px;background:var(--face);box-shadow:inset 0 0 0 3px var(--face),inset 0 0 0 5px var(--tink),0 0 0 3px var(--accent)}
+.tgt:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.tgt.bad{box-shadow:0 0 0 4px var(--bad)}
+.tgt.plaque.bad{box-shadow:inset 0 0 0 3px var(--face),inset 0 0 0 5px var(--tink),0 0 0 4px var(--bad)}
+.tgt.gone{opacity:0;transition:opacity .2s}
+.tgt.hint{box-shadow:0 0 0 5px var(--focus)}
+.tgt.plaque.hint{box-shadow:inset 0 0 0 3px var(--face),inset 0 0 0 5px var(--tink),0 0 0 5px var(--focus)}
+.tgt:disabled{cursor:default}
+.hole{position:absolute;width:11px;height:11px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--tink);box-shadow:0 0 0 2px rgba(255,255,255,.7);pointer-events:none}
+.chips{position:relative;display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label{padding:7px 14px;border:1.5px solid var(--line);border-radius:999px;cursor:pointer;background:var(--panel);font-weight:500}
+.chips input:checked+label{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips input:focus-visible+label{outline:3px solid var(--focus);outline-offset:2px}
+.check{display:flex;gap:8px;align-items:center;margin:4px 0 14px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.wallmini{margin-top:14px}
+.sol{font:500 17px/1.8 var(--font-mono)}
+.sumlist{list-style:none;padding:0;margin:10px 0;display:grid;gap:6px}
+.sumlist li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:4px 0}
+footer{margin-top:28px;font-size:13px;color:var(--muted)}
+@media (max-width:520px){.brow{grid-template-columns:1fr}.blab{padding-top:0}.say{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Matrix Range</h1>
+      <p class="tag">CS 451 &middot; Model Transformations, 2D &middot; levels follow the chapter, slide by slide</p>
+    </div>
+    <p class="best" id="best"></p>
+  </header>
+  <p class="lab">Chapter path</p>
+  <nav class="rack" id="rack" aria-label="Chapter levels"></nav>
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-s="armory" aria-selected="true">Armory</button>
+    <button class="tab" role="tab" data-s="trainer" aria-selected="false">Trainer</button>
+    <button class="tab" role="tab" data-s="range" aria-selected="false">Range</button>
+  </div>
+  <main>
+    <section id="s-armory">
+      <div class="wall" id="wall-big"></div>
+      <div class="actions">
+        <button class="btn" id="a-train" type="button">Train me first</button>
+        <button class="btn primary" id="a-range" type="button">Go to the range</button>
+        <span class="muted" id="a-acc"></span>
+      </div>
+    </section>
+    <section id="s-trainer" hidden>
+      <div class="panel">
+        <div class="coach"><p class="who">Coach</p><p class="say" id="t-say"></p></div>
+        <div class="show" id="t-show"></div>
+        <div class="actions">
+          <button class="btn" id="t-prev" type="button">Back</button>
+          <span class="muted grow" id="t-count"></span>
+          <button class="btn primary" id="t-next" type="button">Next</button>
+        </div>
+      </div>
+    </section>
+    <section id="s-range" hidden>
+      <div id="r-top" class="panel"></div>
+      <div class="lanes" id="lanes" style="margin-top:12px"></div>
+      <div id="r-bottom"></div>
+    </section>
+  </main>
+  <footer>Built for revision of the CS 451 Model Transformations chapter, 2D only. Points are columns, and the matrix goes on the left: P&prime; = M &middot; P. Slide numbers are as listed in the course deck.</footer>
+</div>
+<script>
+(function(){
+'use strict';
+var MINUS='−',THETA='θ',PRIME='′',DOT='·';
+function norm(n){return n+0;}
+function f(n){n=norm(n);return n<0?MINUS+(-n):String(n);}
+function fp(n){n=norm(n);return n<0?'('+MINUS+(-n)+')':String(n);}
+function rint(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function nz(a,b){var v=0;while(v===0)v=rint(a,b);return v;}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function uniqStr(a){var s={},o=[];a.forEach(function(v){if(!s[v]){s[v]=1;o.push(v);}});return o;}
+
+/* ---------- levels in chapter order ---------- */
+var TRANSFORMS=['translate','scale','rotate','shear','reflect'];
+var LEVELS=['pipeline','overview','basics'].concat(TRANSFORMS);
+function isT(t){return TRANSFORMS.indexOf(t)>=0;}
+var ROT={'90':[0,1],'180':[-1,0],'-90':[0,-1],'270':[0,-1]};
+var REFL=[
+  {id:'x-axis',name:'about the x-axis',m:[1,0,0,-1],x:['x'],y:[MINUS,'y'],rule:'x stays, y changes sign'},
+  {id:'y-axis',name:'about the y-axis',m:[-1,0,0,1],x:[MINUS,'x'],y:['y'],rule:'y stays, x changes sign'},
+  {id:'origin',name:'through the origin',m:[-1,0,0,-1],x:[MINUS,'x'],y:[MINUS,'y'],rule:'both change sign'},
+  {id:'y=x',name:'about the line y = x',m:[0,1,1,0],x:['y'],y:['x'],rule:'x and y swap'},
+  {id:'y=-x',name:'about the line y = '+MINUS+'x',m:[0,-1,-1,0],x:[MINUS,'y'],y:[MINUS,'x'],rule:'swap, then both change sign'}
+];
+var POS=['top-left','top-right','bottom-left','bottom-right'];
+var T3=['Model Transform','View Transform','Projection Transform'];
+var SP=['Local space','World space','Camera space','Screen space'];
+var TN=['Translation','Scaling','Rotation','Shearing','Reflection'];
+var QZ={
+  pipeline:[
+    {id:'p1',q:'Which transform takes an object from local space to world space?',a:'Model Transform',set:T3,why:'The Model Transform places the object in the scene. It is the topic of this chapter.'},
+    {id:'p2',q:'Which transform takes the scene from world space to camera space?',a:'View Transform',set:T3,why:'The View Transform describes the scene from the camera point of view.'},
+    {id:'p3',q:'Which transform flattens the 3D scene into the 2D image?',a:'Projection Transform',set:T3,why:'The Projection Transform is the last step, from camera space to screen space.'},
+    {id:'p4',q:'Which of the three transforms is the topic of this chapter?',a:'Model Transform',set:T3,why:'The slides mark the Model Transform as today.'},
+    {id:'p5',q:'In which space is an object described on its own, around its own origin?',a:'Local space',set:SP,why:'Local space is also called model coordinates.'},
+    {id:'p6',q:'In which space do all the objects sit together in the scene?',a:'World space',set:SP,why:'The Model Transform moves the object from local space into world space.'},
+    {id:'p7',q:'In which space is the whole scene described from the camera point of view?',a:'Camera space',set:SP,why:'Camera space comes after the View Transform.'},
+    {id:'p8',q:'The final 2D image you see lives in which space?',a:'Screen space',set:SP,why:'Screen space comes after the Projection Transform.'}
+  ],
+  overview:[
+    {id:'o1',q:'Moves the object to some location.',a:'Translation',set:TN,why:'Translation slides the object without turning or resizing it.'},
+    {id:'o2',q:'Scales the object up or down so it fits well with the other objects.',a:'Scaling',set:TN,why:'Scaling multiplies each coordinate by its own factor.'},
+    {id:'o3',q:'Rotates the object until it has the right orientation.',a:'Rotation',set:TN,why:'Rotation turns the object by an angle about the origin.'},
+    {id:'o4',q:'Tilts the object horizontally and/or vertically, so its shape is distorted.',a:'Shearing',set:TN,why:'Shearing pushes each coordinate by the other coordinate.'},
+    {id:'o5',q:'Mirrors the object about an axis or a line.',a:'Reflection',set:TN,why:'Reflection flips signs or swaps x and y.'},
+    {id:'o6',q:'Which of the five is done by matrix addition?',a:'Translation',set:TN,why:'P'+PRIME+' = P + T. The other four use matrix multiplication.'},
+    {id:'o7',q:'Which one uses a diagonal matrix with sx and sy?',a:'Scaling',set:TN,why:'The factors sit on the diagonal and the other numbers are zero.'},
+    {id:'o8',q:'Which one uses the angle '+THETA+'?',a:'Rotation',set:TN,why:'The matrix has cos '+THETA+' and sin '+THETA+'.'},
+    {id:'o9',q:'Which one has the multipliers shx and shy?',a:'Shearing',set:TN,why:'shx multiplies y and shy multiplies x.'},
+    {id:'o10',q:'Which one has five cases: x-axis, y-axis, origin, y = x and y = '+MINUS+'x?',a:'Reflection',set:TN,why:'Each case is a different matrix of signs and swaps.'}
+  ]
+};
+
+function pickDecoys(v,traps,n){
+  var seen={},out=[];seen[norm(v)]=1;
+  shuffle(traps).forEach(function(t){var k=norm(t.v);if(!seen[k]&&out.length<n){seen[k]=1;out.push({v:k,msg:t.msg});}});
+  [v+2,v-2,v+3,v-3,v*2,v+5,v-5].forEach(function(k){k=norm(k);if(!seen[k]&&out.length<n){seen[k]=1;out.push({v:k,msg:'Not this one. Redo the working.'});}});
+  return out;
+}
+function common(ans){return [{v:-ans,msg:'Check the sign of the answer.'},{v:ans+1,msg:'Off by one. Redo the working.'},{v:ans-1,msg:'Off by one. Redo the working.'}];}
+function matResults(m,x,y){
+  var ax=m[0]*x+m[1]*y,ay=m[2]*x+m[3]*y;
+  function mk(label,row,ans,other){
+    var a=m[row*2],b=m[row*2+1];
+    return {label:label,ans:norm(ans),working:fp(a)+DOT+fp(x)+' + '+fp(b)+DOT+fp(y),
+      hint:'Row '+(row+1)+' with the point: ('+f(a)+DOT+f(x)+') + ('+f(b)+DOT+f(y)+') = '+f(a*x)+' + '+f(b*y)+'.',
+      traps:common(ans).concat([{v:a*x-b*y,msg:'The two products are added, not subtracted.'},{v:a*y+b*x,msg:'You swapped x and y in this row.'},{v:other,msg:'That is the other coordinate. This line asks for '+label+'.'}])};
+  }
+  return [mk('x'+PRIME,0,ax,ay),mk('y'+PRIME,1,ay,ax)];
+}
+function makeTransform(type){
+  var p={type:type,kind:'mat'},x,y,m;
+  if(type==='translate'){
+    p.kind='vec';x=rint(-6,8);y=rint(-6,8);
+    var tx=nz(-6,6),ty=nz(-6,6);
+    p.x=x;p.y=y;
+    p.statement='Translate P('+f(x)+', '+f(y)+') by T = ('+f(tx)+', '+f(ty)+').';
+    p.cells=[{pos:'tx',value:tx,why:'The first number of T is tx = '+f(tx)+'.',others:[ty]},{pos:'ty',value:ty,why:'The second number of T is ty = '+f(ty)+'.',others:[tx]}];
+    p.formula={x:{seq:['x','+','tx'],decoy:[MINUS,'y']},y:{seq:['y','+','ty'],decoy:[MINUS,'x']}};
+    p.results=[
+      {label:'x'+PRIME,ans:norm(x+tx),working:fp(x)+' + '+fp(tx),hint:'Add tx to x: '+f(x)+' + '+fp(tx)+'.',traps:common(x+tx).concat([{v:x-tx,msg:'You subtracted tx. Translation adds it.'},{v:x+ty,msg:'You used ty. x uses tx.'},{v:y+ty,msg:'That is y'+PRIME+'. This line asks for x'+PRIME+'.'}])},
+      {label:'y'+PRIME,ans:norm(y+ty),working:fp(y)+' + '+fp(ty),hint:'Add ty to y: '+f(y)+' + '+fp(ty)+'.',traps:common(y+ty).concat([{v:y-ty,msg:'You subtracted ty. Translation adds it.'},{v:y+tx,msg:'You used tx. y uses ty.'},{v:x+tx,msg:'That is x'+PRIME+'. This line asks for y'+PRIME+'.'}])}
+    ];
+    return p;
+  }
+  if(type==='scale'){
+    x=nz(-5,6);y=nz(-5,6);var sx=rint(1,4),sy=rint(1,4);
+    if(sx===1&&sy===1)sy=3;
+    m=[sx,0,0,sy];
+    p.statement='Scale P('+f(x)+', '+f(y)+') with sx = '+sx+' and sy = '+sy+'.';
+    p.formula={x:{seq:['x',DOT,'sx'],decoy:['+','y']},y:{seq:['y',DOT,'sy'],decoy:['+','x']}};
+    p.why=['sx = '+sx+' goes on the diagonal, top-left.','Zero: x must not use y.','Zero: y must not use x.','sy = '+sy+' goes on the diagonal, bottom-right.'];
+  }else if(type==='rotate'){
+    do{x=rint(-6,8);y=rint(-6,8);}while(x===0&&y===0);
+    var deg=pick(['90','180','-90','270']),cs=ROT[deg],c=cs[0],s=cs[1];
+    m=[c,norm(0-s),s,c];
+    p.statement='Rotate P('+f(x)+', '+f(y)+') by '+THETA+' = '+f(+deg)+'° about the origin'+(+deg<0?' (clockwise).':'.');
+    p.formula={x:{seq:['x','cos '+THETA,MINUS,'y','sin '+THETA],decoy:['+','tx']},y:{seq:['x','sin '+THETA,'+','y','cos '+THETA],decoy:[MINUS,'ty']}};
+    p.why=['cos '+THETA+' with '+THETA+' = '+f(+deg)+'° is '+f(c)+'.',MINUS+'sin '+THETA+': sin '+f(+deg)+'° = '+f(s)+', so this cell is '+f(norm(0-s))+'.','sin '+THETA+': sin '+f(+deg)+'° = '+f(s)+'.','cos '+THETA+' again: '+f(c)+'.'];
+  }else if(type==='shear'){
+    x=nz(-5,6);y=nz(-5,6);var shx=rint(0,3),shy=rint(0,3);
+    if(shx===0&&shy===0)shx=2;
+    m=[1,shx,shy,1];
+    p.statement='Shear P('+f(x)+', '+f(y)+') with shx = '+shx+' and shy = '+shy+'.';
+    p.formula={x:{seq:['x','+','shx',DOT,'y'],decoy:[MINUS,'shy']},y:{seq:['y','+','shy',DOT,'x'],decoy:[MINUS,'shx']}};
+    p.why=['1: x keeps its own value.','shx = '+shx+': x'+PRIME+' = x + shx'+DOT+'y.','shy = '+shy+': y'+PRIME+' = y + shy'+DOT+'x.','1: y keeps its own value.'];
+  }else{
+    x=nz(-5,6);y=nz(-5,6);
+    var r=pick(REFL);m=r.m.slice();
+    p.statement='Reflect P('+f(x)+', '+f(y)+') '+r.name+'.';
+    var pool=['x','y',MINUS,'+',DOT];
+    p.formula={x:{seq:r.x.slice(),decoy:pool.filter(function(t){return r.x.indexOf(t)<0;}).slice(0,3)},y:{seq:r.y.slice(),decoy:pool.filter(function(t){return r.y.indexOf(t)<0;}).slice(0,3)}};
+    p.why=POS.map(function(pos,i){return 'Reflection '+r.name+' ('+r.rule+'): the '+pos+' cell is '+f(m[i])+'.';});
+    p.refl=r;
+  }
+  p.x=x;p.y=y;p.m=m;
+  p.cells=m.map(function(v,i){
+    return {pos:POS[i],value:norm(v),why:p.why[i],others:m.filter(function(_,j){return j!==i;})};
+  });
+  p.results=matResults(m,x,y);
+  return p;
+}
+function makeQuiz(type,used){
+  var bank=QZ[type],pool=bank.filter(function(q){return !used||used.indexOf(q.id)<0;});
+  if(!pool.length){if(used)used.length=0;pool=bank;}
+  var q=pick(pool);if(used)used.push(q.id);
+  var decoys=shuffle(q.set.filter(function(s){return s!==q.a;})).slice(0,4);
+  return {type:type,kind:'quiz',statement:q.q,qid:q.id,choice:{answer:q.a,decoys:decoys,why:q.why}};
+}
+function makeBasics(used){
+  var kinds=['add','sub','scalar','matvec','AB','BA'];
+  var pool=kinds.filter(function(k){return !used||used.indexOf(k)<0;});
+  if(!pool.length){if(used)used.length=0;pool=kinds;}
+  var op=pick(pool);if(used)used.push(op);
+  var A=[],B=[],i;
+  for(i=0;i<4;i++){A.push(rint(-3,5));B.push(rint(-3,5));}
+  var v=[rint(-3,5),rint(-3,5)],k=pick([2,3,-1,-2]);
+  var p={type:'basics',kind:'basics',op:op,A:A,B:B,v:v,k:k,results:[]};
+  function other(arr,i){return arr[(i+1)%arr.length];}
+  if(op==='add'){
+    p.statement='Add A + B.';
+    for(i=0;i<4;i++)p.results.push({label:POS[i],ans:norm(A[i]+B[i]),working:fp(A[i])+' + '+fp(B[i]),hint:'Same position with same position: '+f(A[i])+' + '+fp(B[i])+'.',
+      traps:common(A[i]+B[i]).concat([{v:A[i]-B[i],msg:'You subtracted. This one adds.'},{v:A[i]*B[i],msg:'You multiplied. Add position by position.'},{v:other(A,i)+other(B,i),msg:'That is the sum of another position.'}])});
+  }else if(op==='sub'){
+    p.statement='Subtract A '+MINUS+' B.';
+    for(i=0;i<4;i++)p.results.push({label:POS[i],ans:norm(A[i]-B[i]),working:fp(A[i])+' '+MINUS+' '+fp(B[i]),hint:'Same position, A first: '+f(A[i])+' '+MINUS+' '+fp(B[i])+'.',
+      traps:common(A[i]-B[i]).concat([{v:A[i]+B[i],msg:'You added. This one subtracts.'},{v:B[i]-A[i],msg:'Wrong order. It is A minus B.'},{v:other(A,i)-other(B,i),msg:'That is the difference of another position.'}])});
+  }else if(op==='scalar'){
+    p.statement='Multiply every number of A by k = '+f(k)+'.';
+    for(i=0;i<4;i++)p.results.push({label:POS[i],ans:norm(k*A[i]),working:fp(k)+DOT+fp(A[i]),hint:'k times the number: '+f(k)+DOT+fp(A[i])+'.',
+      traps:common(k*A[i]).concat([{v:k+A[i],msg:'Multiply, do not add.'},{v:A[i],msg:'You forgot to multiply by k.'},{v:k*other(A,i),msg:'That is another position.'}])});
+  }else if(op==='matvec'){
+    p.statement='Multiply A '+DOT+' v.';
+    var r0=A[0]*v[0]+A[1]*v[1],r1=A[2]*v[0]+A[3]*v[1];
+    [[0,'top',r0,r1],[1,'bottom',r1,r0]].forEach(function(q){
+      var a=A[q[0]*2],b=A[q[0]*2+1];
+      p.results.push({label:q[1],ans:norm(q[2]),working:fp(a)+DOT+fp(v[0])+' + '+fp(b)+DOT+fp(v[1]),hint:'Row '+(q[0]+1)+' of A with the column v: ('+f(a)+DOT+f(v[0])+') + ('+f(b)+DOT+f(v[1])+') = '+f(a*v[0])+' + '+f(b*v[1])+'.',
+        traps:common(q[2]).concat([{v:a*v[0]-b*v[1],msg:'The two products are added.'},{v:a*v[1]+b*v[0],msg:'You swapped the numbers of v.'},{v:q[3],msg:'That is the other row.'}])});
+    });
+  }else{
+    var X=op==='AB'?A:B,Y=op==='AB'?B:A;
+    p.statement='Multiply '+(op==='AB'?'A '+DOT+' B':'B '+DOT+' A')+'.';
+    for(i=0;i<4;i++){
+      var r=Math.floor(i/2),c=i%2;
+      var ans=X[2*r]*Y[c]+X[2*r+1]*Y[2+c];
+      var rev=Y[2*r]*X[c]+Y[2*r+1]*X[2+c];
+      p.results.push({label:POS[i],ans:norm(ans),working:fp(X[2*r])+DOT+fp(Y[c])+' + '+fp(X[2*r+1])+DOT+fp(Y[2+c]),
+        hint:'Row '+(r+1)+' of the left matrix with column '+(c+1)+' of the right matrix: ('+f(X[2*r])+DOT+f(Y[c])+') + ('+f(X[2*r+1])+DOT+f(Y[2+c])+').',
+        traps:common(ans).concat([{v:rev,msg:'That is the other order. Check which matrix goes on the left.'},{v:X[i]*Y[i],msg:'You multiplied position by position. Use row times column.'},{v:X[2*r]*Y[2+c]+X[2*r+1]*Y[c],msg:'Row and column mixed up. Use the column of the right matrix.'}])});
+    }
+  }
+  return p;
+}
+function makeProblem(type,used){
+  if(type==='pipeline'||type==='overview')return makeQuiz(type,used);
+  if(type==='basics')return makeBasics(used);
+  return makeTransform(type);
+}
+function cellTraps(c){
+  var v=c.value,t=[{v:-v,msg:'Check the sign of this cell.'},{v:v+1,msg:'Off by one. Read the rule again.'},{v:v-1,msg:'Off by one. Read the rule again.'},{v:0,msg:'Zero belongs to another cell.'},{v:1,msg:'That value belongs to another cell.'},{v:-1,msg:'That value belongs to another cell.'}];
+  c.others.forEach(function(o){t.push({v:o,msg:'That value belongs to another cell.'});t.push({v:-o,msg:'Wrong cell and wrong sign.'});});
+  return t;
+}
+/*LOGIC-END*/
+
+/* ---------- wall, level data and lessons ---------- */
+function MAT(vals,cols){return '<span class="mat" style="--c:'+cols+'">'+vals.map(function(v){return '<span class="mc">'+v+'</span>';}).join('')+'</span>';}
+var P2=PRIME;
+var SV='<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+var ICONS={
+  pipeline:SV+'<path d="M3 16h26"/><circle cx="5" cy="16" r="2.5"/><circle cx="14" cy="16" r="2.5"/><circle cx="23" cy="16" r="2.5"/><path d="M26 12l4 4-4 4"/></svg>',
+  overview:SV+'<rect x="4" y="4" width="10" height="10"/><path d="M18 14l5-10 5 10z"/><circle cx="9" cy="23" r="5"/><path d="M23 18l5 5-5 5-5-5z"/></svg>',
+  basics:SV+'<path d="M11 5H6v22h5M21 5h5v22h-5"/><circle cx="12" cy="12" r="1.5"/><circle cx="20" cy="12" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="20" cy="20" r="1.5"/></svg>',
+  translate:SV+'<rect x="3" y="11" width="10" height="10" rx="1"/><path d="M17 16h11m-4-4 4 4-4 4"/></svg>',
+  scale:SV+'<rect x="4" y="20" width="8" height="8"/><rect x="4" y="6" width="22" height="22"/></svg>',
+  rotate:SV+'<path d="M26 16a10 10 0 1 1-3-7.1"/><path d="M26 5v6h-6"/></svg>',
+  shear:SV+'<path d="M8 25l4-17h14l-4 17z"/></svg>',
+  reflect:SV+'<path d="M16 3v26" stroke-dasharray="3 3"/><path d="M13 9 5 24h8z"/><path d="M19 9l8 15h-8z"/></svg>',
+  whole:SV+'<circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/><circle cx="24" cy="8" r="2"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="24" cy="16" r="2"/><circle cx="8" cy="24" r="2"/><circle cx="16" cy="24" r="2"/><circle cx="24" cy="24" r="2"/></svg>'
+};
+var LV={
+  pipeline:{name:'Pipeline',weapon:'Slides 3–4',slides:'3–4',icon:ICONS.pipeline,run:5},
+  overview:{name:'Overview',weapon:'Slides 5–6',slides:'5–6',icon:ICONS.overview,run:5},
+  basics:{name:'Matrix basics',weapon:'Slide 7',slides:'7',icon:ICONS.basics,run:4},
+  translate:{name:'Translate',weapon:'Slingshot · 9–10',slides:'9–10',icon:ICONS.translate,run:4,
+    eq:['x'+P2+' = x + tx','y'+P2+' = y + ty'],
+    mat:'<span>P'+P2+' = P + T</span>'+MAT(['x'+P2,'y'+P2],1)+'<span>=</span>'+MAT(['x','y'],1)+'<span>+</span>'+MAT(['tx','ty'],1),
+    traps:['The only one done by adding. No matrix multiplication.','A negative tx moves left, a negative ty moves down.','Add the same T to every vertex of a shape.']},
+  scale:{name:'Scale',weapon:'Magnifier · 11–12',slides:'11–12',icon:ICONS.scale,run:4,
+    eq:['x'+P2+' = x '+DOT+' sx','y'+P2+' = y '+DOT+' sy'],
+    mat:'<span>P'+P2+' = S '+DOT+' P</span>'+MAT(['x'+P2,'y'+P2],1)+'<span>=</span>'+MAT(['sx','0','0','sy'],2)+'<span>'+DOT+'</span>'+MAT(['x','y'],1),
+    traps:['Factors sit on the diagonal, zeros everywhere else.','sx and sy different: the shape stretches (non-uniform).','Scaling is about the origin, so the shape also moves away from it.','One axis only: set the other factor to 1.']},
+  rotate:{name:'Rotate',weapon:'Revolver · 13–15',slides:'13–15',icon:ICONS.rotate,run:4,
+    eq:['x'+P2+' = x cos '+THETA+' '+MINUS+' y sin '+THETA,'y'+P2+' = x sin '+THETA+' + y cos '+THETA],
+    mat:'<span>P'+P2+' = R('+THETA+') '+DOT+' P</span>'+MAT(['x'+P2,'y'+P2],1)+'<span>=</span>'+MAT(['cos '+THETA,MINUS+'sin '+THETA,'sin '+THETA,'cos '+THETA],2)+'<span>'+DOT+'</span>'+MAT(['x','y'],1),
+    traps:['Positive angle = counterclockwise. Negative angle = clockwise.','The only minus sits in front of sin '+THETA+' in the top-right cell.','Rotation is about the origin.'],
+    extra:'<div class="tscroll"><table class="wtable"><tr><th>'+THETA+'</th><th>0°</th><th>30°</th><th>45°</th><th>60°</th><th>90°</th><th>180°</th><th>'+MINUS+'90°</th></tr><tr><th>cos</th><td>1</td><td>0.87</td><td>0.71</td><td>0.5</td><td>0</td><td>'+MINUS+'1</td><td>0</td></tr><tr><th>sin</th><td>0</td><td>0.5</td><td>0.71</td><td>0.87</td><td>1</td><td>0</td><td>'+MINUS+'1</td></tr></table></div><p class="muted" style="margin:6px 0 0;font-size:13px">45° is about 0.71. Check how your slides round it.</p>'},
+  shear:{name:'Shear',weapon:'Crossbow · 16–17',slides:'16–17',icon:ICONS.shear,run:4,
+    eq:['x'+P2+' = x + shx '+DOT+' y','y'+P2+' = y + shy '+DOT+' x'],
+    mat:'<span>P'+P2+' = Sh '+DOT+' P</span>'+MAT(['x'+P2,'y'+P2],1)+'<span>=</span>'+MAT(['1','shx','shy','1'],2)+'<span>'+DOT+'</span>'+MAT(['x','y'],1),
+    traps:['shx multiplies y. shy multiplies x.','x only: set shy = 0. y only: set shx = 0.','A square does not stay a square.']},
+  reflect:{name:'Reflect',weapon:'Mirror · 18–21',slides:'18–21',icon:ICONS.reflect,run:4,
+    traps:['y = x only swaps. y = '+MINUS+'x swaps and negates both.','Through the origin is the same as a rotation by 180°.']},
+  whole:{name:'Whole chapter',weapon:'All 8 levels',icon:ICONS.whole}
+};
+function reflTable(){
+  var h='<div class="tscroll"><table class="wtable"><tr><th>Mirror</th><th>x'+P2+'</th><th>y'+P2+'</th><th>Matrix</th></tr>';
+  REFL.forEach(function(r){h+='<tr><td>'+r.name+'</td><td>'+r.x.join('')+'</td><td>'+r.y.join('')+'</td><td>'+MAT(r.m.map(function(v){return f(v);}),2)+'</td></tr>';});
+  return h+'</table></div>';
+}
+function chain(hi){
+  var parts=[['Local space',null],['Model Transform','m'],['World space',null],['View Transform','v'],['Camera space',null],['Projection Transform','p'],['Screen space',null]];
+  return '<div class="chain">'+parts.map(function(p,i){
+    var on=(hi==='all')||(hi===p[1])||(hi===p[0]);
+    return (i?'<span class="arrow">&rarr;</span>':'')+'<span class="node'+(on?' hi':'')+'">'+p[0]+'</span>';
+  }).join('')+'</div>';
+}
+function lines(a,cls){return a.map(function(l){return '<div class="wline'+(cls?' '+cls:'')+'">'+l+'</div>';}).join('');}
+function wallHTML(t,full){
+  var W=LV[t],h='<p class="wlab">Wall · '+W.name+(W.slides?' · slides '+W.slides:'')+'</p>';
+  if(t==='pipeline'){
+    h+=chain('all');
+    if(full)h+='<ul class="traps"><li>Local = model coordinates. World = all objects together. Camera = view coordinates. Screen = image coordinates.</li><li>This chapter is the Model Transform: local to world.</li><li>Used to position and deform objects, move the camera, animate, project 3D onto 2D, map textures and project shadows.</li></ul>';
+    return h;
+  }
+  if(t==='overview'){
+    h+=lines(['Translate: move it to some location','Scale: bigger or smaller, to fit','Rotate: turn it to the right orientation','Shear: tilt it, the shape is distorted','Reflect: mirror it about an axis or line'],'sm');
+    if(full)h+='<ul class="traps"><li>Translate, scale and rotate come first. Shear and reflect are the two extra ones.</li><li>We work in 2D: every point is (x, y).</li></ul>';
+    return h;
+  }
+  if(t==='basics'){
+    h+=lines(['A + B and A '+MINUS+' B: same position with same position','k '+DOT+' A: multiply every number by k','A '+DOT+' v: each row of A with the column v','A '+DOT+' B: each row of A with each column of B','A '+DOT+' B is not the same as B '+DOT+' A'],'sm');
+    if(full){
+      h+='<div class="wmat">'+MAT(['1','2','3','4'],2)+'<span>'+DOT+'</span>'+MAT(['5','6'],1)+'<span>=</span>'+MAT(['17','39'],1)+'<span>(1'+DOT+'5 + 2'+DOT+'6 = 17, 3'+DOT+'5 + 4'+DOT+'6 = 39)</span></div>';
+      h+='<ul class="traps"><li>A point is a column: x on top, y below. The matrix goes on the left.</li><li>A shape is several points side by side, one column each.</li><li>Both matrices must be the same size to add or subtract.</li></ul>';
+    }
+    return h;
+  }
+  if(t==='reflect'){h+=reflTable();if(full)h+='<ul class="traps">'+W.traps.map(function(s){return '<li>'+s+'</li>';}).join('')+'</ul>';return h;}
+  h+=lines(W.eq);
+  if(full){
+    h+='<div class="wmat">'+W.mat+'</div>';
+    h+='<ul class="traps">'+W.traps.map(function(s){return '<li>'+s+'</li>';}).join('')+'</ul>';
+    if(W.extra)h+=W.extra;
+  }
+  return h;
+}
+function E(a){return '<div class="eqs">'+a.map(function(l){return '<div class="eqline">'+l+'</div>';}).join('')+'</div>';}
+var LESSON={
+  pipeline:[
+    {say:'Transformations are everywhere in graphics: they position and deform objects, move the camera, animate things, and project 3D objects onto 2D images. This chapter is one part of that journey.',show:chain('all')},
+    {say:'An object starts in local space: the object on its own, around its own origin. These are the model coordinates.',show:chain('Local space')},
+    {say:'The Model Transform places the object in world space, together with all the other objects. The slides mark it as today. It is the topic of this whole chapter.',show:chain('m')},
+    {say:'After that, the View Transform describes the scene from the camera, and the Projection Transform flattens it into the 2D screen image. You only need the names of these two.',show:chain('v')+'<div style="height:10px"></div>'+chain('p')}],
+  overview:[
+    {say:'Once an object is described, you can do three things to it: move it, scale it and rotate it. The slides add two more useful ones, shearing and reflection.',show:E(['Translate','Scale','Rotate','Shear','Reflect'])},
+    {say:'Translate moves the object to some location. Scale makes it bigger or smaller so it fits well with the other objects. Rotate turns it until it has the right orientation.',show:E(['Translate: move it','Scale: resize it','Rotate: turn it'])},
+    {say:'Shear tilts the object horizontally and/or vertically, so its shape is distorted. Reflect mirrors it about an axis or a line.',show:E(['Shear: tilt, shape distorted','Reflect: mirror about an axis or line'])},
+    {say:'We work in 2D: every point is (x, y). Each transformation gets a short formula and a matrix, and the exam asks you to calculate with them. Next you review the matrix arithmetic.',show:E(['P'+P2+' = M '+DOT+' P'])}],
+  basics:[
+    {say:'Add or subtract matrices position by position: each number combines only with the number in the same spot. Both matrices must be the same size.',show:E([MAT(['1','2','3','4'],2)+' + '+MAT(['0','1','1','0'],2)+' = '+MAT(['1','3','4','4'],2),MAT(['1','2','3','4'],2)+' '+MINUS+' '+MAT(['0','1','1','0'],2)+' = '+MAT(['1','1','2','4'],2)])},
+    {say:'Scalar multiplication: multiply every number of the matrix by the same number k.',show:E(['2 '+DOT+' '+MAT(['1','2','3','4'],2)+' = '+MAT(['2','4','6','8'],2)])},
+    {say:'Matrix times vector: take each row of the matrix with the column. Row 1: 1'+DOT+'5 + 2'+DOT+'6 = 17. Row 2: 3'+DOT+'5 + 4'+DOT+'6 = 39. One column in, one column out.',show:E([MAT(['1','2','3','4'],2)+' '+DOT+' '+MAT(['5','6'],1)+' = '+MAT(['17','39'],1)])},
+    {say:'Matrix times matrix: the same rule once for each column of the right matrix. Each cell is a row of the left matrix with a column of the right matrix. Top-left: 1'+DOT+'5 + 2'+DOT+'7 = 19.',show:E([MAT(['1','2','3','4'],2)+' '+DOT+' '+MAT(['5','6','7','8'],2)+' = '+MAT(['19','22','43','50'],2)])},
+    {say:'Order matters. Swap the two matrices and the answer changes: B'+DOT+'A is not A'+DOT+'B. That is why composite transformations must be written in the right order.',show:E([MAT(['5','6','7','8'],2)+' '+DOT+' '+MAT(['1','2','3','4'],2)+' = '+MAT(['23','34','31','46'],2)])}],
+  translate:[
+    {say:'Translation slides every point by the same amount. It is the one transformation done by adding, not multiplying.',show:E(['x'+P2+' = x + tx','y'+P2+' = y + ty'])},
+    {say:'In matrix form you add the column T to the column P. Try P = (5, 2) and T = ('+MINUS+'3, 4).',show:E([MAT(['x'+P2,'y'+P2],1)+' = '+MAT(['5','2'],1)+' + '+MAT([MINUS+'3','4'],1)])},
+    {say:'Add row by row. Top: 5 + ('+MINUS+'3) = 2. Bottom: 2 + 4 = 6.',show:E(['P'+P2+' = (2, 6)'])},
+    {say:'Exam trap: use the same tx and ty on every vertex of a shape. A negative tx moves left and a negative ty moves down.',show:E(['(1, 1) + ('+MINUS+'3, 4) = ('+MINUS+'2, 5)'])}],
+  scale:[
+    {say:'Scaling multiplies. Each coordinate gets its own factor: sx for x and sy for y.',show:E(['x'+P2+' = x '+DOT+' sx','y'+P2+' = y '+DOT+' sy'])},
+    {say:'Put the factors on the diagonal of a 2 by 2 matrix. The zeros stop x and y from mixing. Try P = (5, 5), sx = 3, sy = 2.',show:E([MAT(['x'+P2,'y'+P2],1)+' = '+MAT(['3','0','0','2'],2)+' '+DOT+' '+MAT(['5','5'],1)])},
+    {say:'Row 1 with the column: 3'+DOT+'5 + 0'+DOT+'5 = 15. Row 2: 0'+DOT+'5 + 2'+DOT+'5 = 10.',show:E(['P'+P2+' = (15, 10)'])},
+    {say:'Exam trap: scaling is about the origin, so a shape also moves away from it. If sx and sy differ the shape stretches. To scale one axis only, set the other factor to 1.',show:E([MAT(['1','0','0','4'],2)+' stretches y only'])}],
+  rotate:[
+    {say:'Rotation turns a point about the origin by an angle. Positive angle is counterclockwise, negative is clockwise.',show:E(['x'+P2+' = x cos '+THETA+' '+MINUS+' y sin '+THETA,'y'+P2+' = x sin '+THETA+' + y cos '+THETA])},
+    {say:'Build the matrix: cos on the diagonal, minus sin top-right, sin bottom-left. For '+THETA+' = 90°, cos = 0 and sin = 1. Try P = (4, 1).',show:E([MAT(['x'+P2,'y'+P2],1)+' = '+MAT(['0',MINUS+'1','1','0'],2)+' '+DOT+' '+MAT(['4','1'],1)])},
+    {say:'Row 1: 0'+DOT+'4 + ('+MINUS+'1)'+DOT+'1 = '+MINUS+'1. Row 2: 1'+DOT+'4 + 0'+DOT+'1 = 4.',show:E(['P'+P2+' = ('+MINUS+'1, 4)'])},
+    {say:'Exam trap: the only minus sign sits in front of the top-right sin. For '+MINUS+'90° the signs flip, because sin('+MINUS+'90°) = '+MINUS+'1.',show:E([MAT(['0','1',MINUS+'1','0'],2)+' is R('+MINUS+'90°)'])}],
+  shear:[
+    {say:'Shearing tilts a shape. Each coordinate is pushed by the other coordinate.',show:E(['x'+P2+' = x + shx '+DOT+' y','y'+P2+' = y + shy '+DOT+' x'])},
+    {say:'The diagonal keeps the old values (1 and 1). The shear numbers go in the corners. Try P = (1, 1), shx = 3, shy = 2.',show:E([MAT(['x'+P2,'y'+P2],1)+' = '+MAT(['1','3','2','1'],2)+' '+DOT+' '+MAT(['1','1'],1)])},
+    {say:'Row 1: 1'+DOT+'1 + 3'+DOT+'1 = 4. Row 2: 2'+DOT+'1 + 1'+DOT+'1 = 3.',show:E(['P'+P2+' = (4, 3)'])},
+    {say:'Exam trap: shx multiplies y and shy multiplies x. For a shear along x only, set shy = 0.',show:E([MAT(['1','2','0','1'],2)+' is an x-only shear'])}],
+  reflect:[
+    {say:'Reflection mirrors a point across a line. The slides give five cases. Learn the pattern: the axes flip one sign, the diagonals swap.',show:reflTable()},
+    {say:'Take the line y = '+MINUS+'x: swap x and y, then negate both. Try P = (4, 2).',show:E([MAT(['x'+P2,'y'+P2],1)+' = '+MAT(['0',MINUS+'1',MINUS+'1','0'],2)+' '+DOT+' '+MAT(['4','2'],1)])},
+    {say:'Row 1: 0'+DOT+'4 + ('+MINUS+'1)'+DOT+'2 = '+MINUS+'2. Row 2: ('+MINUS+'1)'+DOT+'4 + 0'+DOT+'2 = '+MINUS+'4.',show:E(['P'+P2+' = ('+MINUS+'2, '+MINUS+'4)'])},
+    {say:'Exam trap: y = x only swaps. y = '+MINUS+'x swaps and negates both. About the x-axis the y changes sign; about the y-axis the x changes sign.',show:E([MAT(['0','1','1','0'],2)+' is y = x',MAT(['0',MINUS+'1',MINUS+'1','0'],2)+' is y = '+MINUS+'x'])}]
+};
+
+/* ---------- state ---------- */
+var LS_KEY='matrix-range-v2';
+function loadStats(){try{var r=localStorage.getItem(LS_KEY);if(r){var o=JSON.parse(r);if(o&&o.w)return o;}}catch(e){}return {best:0,w:{},cleared:{}};}
+var stats=loadStats();if(!stats.cleared)stats.cleared={};
+function saveStats(){try{localStorage.setItem(LS_KEY,JSON.stringify(stats));}catch(e){}}
+function wstat(t){if(!stats.w[t])stats.w[t]={shots:0,hits:0};return stats.w[t];}
+var S={screen:'armory',weapon:'pipeline',last:'pipeline',mode:'full',wall:true,lesson:0,phase:'idle'};
+var run=null;
+var $=function(id){return document.getElementById(id);};
+
+/* ---------- target engine ---------- */
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var T={list:[],raf:0,last:0,decor:false};
+var lanesEl=$('lanes');
+function clearTargets(){T.list.forEach(function(t){if(t.el.parentNode)t.el.parentNode.removeChild(t.el);});T.list=[];}
+function spawn(items,decor){
+  clearTargets();T.decor=!!decor;
+  var w=lanesEl.clientWidth||600,ys=[10,86,162],per=[0,0,0];
+  items=shuffle(items);
+  items.forEach(function(it,i){var lane=i%3;it.lane=lane;it.k=per[lane]++;});
+  items.forEach(function(it){
+    var b=document.createElement('button');b.type='button';
+    b.className='tgt'+(it.plaque?' plaque':'');b.textContent=it.label;
+    if(decor){b.disabled=true;b.setAttribute('aria-hidden','true');b.tabIndex=-1;}
+    var n=per[it.lane],size=it.plaque?Math.max(80,it.label.length*10+40):66;
+    var t={it:it,el:b,y:ys[it.lane]+(it.plaque?11:0),x:(it.k+0.5)*(w/n)-size/2,dir:it.lane%2?-1:1,v:reduce?0:30+Math.random()*40,size:size};
+    b.style.transform='translate('+t.x+'px,'+t.y+'px)';
+    b.addEventListener('click',function(ev){if(!T.decor)shoot(t,ev);});
+    lanesEl.appendChild(b);T.list.push(t);
+  });
+  if(!T.raf&&!reduce)T.raf=requestAnimationFrame(tick);
+}
+function tick(ts){
+  var dt=Math.min(0.05,(ts-(T.last||ts))/1000);T.last=ts;
+  var w=lanesEl.clientWidth||600;
+  if(!document.hidden){T.list.forEach(function(t){
+    t.x+=t.dir*t.v*dt;
+    if(t.dir>0&&t.x>w)t.x=-t.size;
+    if(t.dir<0&&t.x<-t.size)t.x=w;
+    t.el.style.transform='translate('+t.x+'px,'+t.y+'px)';
+  });}
+  T.raf=requestAnimationFrame(tick);
+}
+function removeTarget(t){
+  t.el.classList.add('gone');
+  setTimeout(function(){if(t.el.parentNode)t.el.parentNode.removeChild(t.el);},220);
+  T.list=T.list.filter(function(x){return x!==t;});
+}
+function addHole(t,ev){
+  var r=t.el.getBoundingClientRect(),h=document.createElement('span');h.className='hole';
+  var cx=ev&&ev.clientX?ev.clientX-r.left:r.width/2,cy=ev&&ev.clientY?ev.clientY-r.top:r.height/2;
+  h.style.left=cx+'px';h.style.top=cy+'px';t.el.appendChild(h);
+}
+
+/* ---------- run ---------- */
+function say(msg,cls){var c=$('coach');if(!c)return;c.textContent=msg;c.className='coachline'+(cls?' '+cls:'');}
+function buildStages(p,mode){
+  var st=[];
+  if(p.kind==='quiz')return [{k:'choice'}];
+  if(p.kind==='basics'){p.results.forEach(function(r,i){st.push({k:'result',i:i});});return st;}
+  if(mode!=='calc'){st.push({k:'formula',ax:'x'});st.push({k:'formula',ax:'y'});}
+  if(mode!=='formula'){p.cells.forEach(function(c,i){st.push({k:'cell',i:i});});st.push({k:'result',i:0});st.push({k:'result',i:1});}
+  return st;
+}
+function newProblem(){
+  var type=run.queue[run.idx],p=makeProblem(type,run.used[type]||(run.used[type]=[]));
+  if(p.cells)p.cells.forEach(function(c){c.traps=cellTraps(c);});
+  run.p=p;run.stages=buildStages(p,run.mode);run.si=0;run.lock=false;
+  run.b={fx:[],fy:[],cells:p.cells?p.cells.map(function(){return null;}):[],r:p.results?p.results.map(function(){return null;}):[],choice:false};
+  S.phase='play';
+  renderTop();enterStage();
+}
+function startRun(){
+  var q;
+  if(S.weapon==='whole')q=LEVELS.slice();
+  else{q=[];for(var i=0;i<LV[S.weapon].run;i++)q.push(S.weapon);}
+  run={queue:q,idx:0,mode:S.mode,score:0,shots:0,hits:0,combo:0,byType:{},used:{},whole:S.weapon==='whole'};
+  $('rack').classList.add('locked');
+  newProblem();
+}
+function curStage(){return run.stages[run.si];}
+function numberItems(v,traps){
+  var items=[{label:f(v),val:norm(v),ok:true,msg:''}];
+  pickDecoys(v,traps,5).forEach(function(d){items.push({label:f(d.v),val:d.v,ok:false,msg:d.msg});});
+  return items;
+}
+function resultPrompt(p,r){return p.kind==='basics'?'Calculate the '+r.label+' number: '+r.working+'.':'Calculate '+r.label+' = '+r.working+'.';}
+function enterStage(){
+  var st=curStage();
+  if(!st){clearProblem();return;}
+  var p=run.p,items=[];
+  if(st.k==='formula'){
+    var fm=p.formula[st.ax];
+    uniqStr(fm.seq.concat(fm.decoy)).forEach(function(l){items.push({label:l,plaque:true});});
+    say('Build '+st.ax+PRIME+': shoot the pieces in order.','');
+  }else if(st.k==='cell'){
+    var c=p.cells[st.i];items=numberItems(c.value,c.traps);
+    say('Shoot the value for the '+c.pos+' cell.','');
+  }else if(st.k==='choice'){
+    items=[{label:p.choice.answer,plaque:true,ok:true}];
+    p.choice.decoys.forEach(function(d){items.push({label:d,plaque:true,ok:false,msg:'Not that one. Read the question again.'});});
+    say('Shoot the right answer.','');
+  }else{
+    var r=p.results[st.i];items=numberItems(r.ans,r.traps);
+    say(resultPrompt(p,r),'');
+  }
+  spawn(items,false);renderBench();renderScore();
+}
+function shoot(t,ev){
+  if(!run||S.phase!=='play'||run.lock)return;
+  var st=curStage(),p=run.p,ok=false,msg='',pts=0,done=false;
+  if(st.k==='formula'){
+    var fm=p.formula[st.ax],bf=run.b['f'+st.ax],exp=fm.seq[bf.length];
+    if(t.it.label===exp){ok=true;pts=2;bf.push(exp);done=bf.length===fm.seq.length;}
+    else msg=fm.seq.indexOf(t.it.label)>=0?'Right piece, wrong place. Think about the order in '+st.ax+PRIME+'.':'That piece is not part of this formula.';
+  }else if(st.k==='cell'){
+    if(t.it.ok){ok=true;pts=5;run.b.cells[st.i]=p.cells[st.i].value;done=true;}else msg=t.it.msg;
+  }else if(st.k==='choice'){
+    if(t.it.ok){ok=true;pts=5;run.b.choice=true;done=true;}else msg=t.it.msg;
+  }else{
+    if(t.it.ok){ok=true;pts=10;run.b.r[st.i]=p.results[st.i].ans;done=true;}else msg=t.it.msg;
+  }
+  addHole(t,ev);
+  var ws=wstat(p.type);ws.shots++;run.shots++;
+  var bt=run.byType[p.type]||(run.byType[p.type]={shots:0,hits:0});bt.shots++;
+  if(ok){
+    ws.hits++;run.hits++;bt.hits++;run.combo++;
+    run.score+=pts*(S.wall?1:2);
+    removeTarget(t);
+    say(done?'Good. Next.':'Good. Keep going.','good');
+    if(done){run.si++;run.lock=true;setTimeout(function(){if(run&&S.phase==='play'){run.lock=false;enterStage();}},260);}else{renderBench();}
+  }else{
+    run.combo=0;t.el.classList.add('bad');setTimeout(function(){t.el.classList.remove('bad');},320);
+    say(msg,'bad');
+  }
+  renderScore();saveStats();
+}
+function hint(){
+  if(!run||S.phase!=='play'||run.lock)return;
+  var st=curStage(),p=run.p;
+  run.score=Math.max(0,run.score-3);
+  if(st.k==='formula'){
+    var fm=p.formula[st.ax],exp=fm.seq[run.b['f'+st.ax].length];
+    T.list.forEach(function(t){if(t.it.label===exp)t.el.classList.add('hint');});
+    say('Hint: shoot the highlighted piece next.','');
+  }else if(st.k==='cell'){say('Hint: '+p.cells[st.i].why,'');}
+  else if(st.k==='choice'){say('Hint: '+p.choice.why,'');}
+  else{say('Hint: '+p.results[st.i].hint,'');}
+  renderScore();
+}
+function clearProblem(){S.phase='clear';clearTargets();spawn([],true);renderTop();}
+function nextProblem(){run.idx++;if(run.idx>=run.queue.length){finishRun();}else{newProblem();}}
+function skipProblem(){if(S.phase==='play'){run.combo=0;nextProblem();}}
+function nextLevelOf(t){var i=LEVELS.indexOf(t);return i>=0&&i<LEVELS.length-1?LEVELS[i+1]:null;}
+function finishRun(){
+  S.phase='end';
+  if(run.score>stats.best)stats.best=run.score;
+  Object.keys(run.byType).forEach(function(k){var r=run.byType[k];if(r.shots&&r.hits/r.shots>=0.7)stats.cleared[k]=true;});
+  saveStats();clearTargets();
+  $('rack').classList.remove('locked');
+  renderRack();renderBest();renderTop();
+}
+function quitRun(){
+  run=null;S.phase='idle';$('rack').classList.remove('locked');
+  renderTop();idleTargets();
+}
+function idleTargets(){
+  var t=S.weapon==='whole'?'rotate':S.weapon,p=makeProblem(t),items=[];
+  if(p.kind==='quiz'){[p.choice.answer].concat(p.choice.decoys).forEach(function(l){items.push({label:l,plaque:true});});}
+  else if(p.kind==='basics'){p.results.forEach(function(r){items.push({label:f(r.ans)});});}
+  else{
+    uniqStr(p.formula.x.seq.concat(p.formula.x.decoy)).forEach(function(l){items.push({label:l,plaque:true});});
+    [p.results[0].ans,p.results[1].ans,p.cells[0].value].forEach(function(v){items.push({label:f(v)});});
+  }
+  spawn(items,true);
+}
+
+/* ---------- rendering ---------- */
+function renderBest(){$('best').textContent=stats.best?'Best run: '+stats.best+' points':'';}
+function renderRack(){
+  var h='';
+  LEVELS.concat(['whole']).forEach(function(k,i){
+    var w=LV[k],dis=(k==='whole'&&S.screen!=='range'),num=k==='whole'?'★':String(i+1);
+    h+='<button type="button" class="wp" data-w="'+k+'" aria-pressed="'+(S.weapon===k)+'"'+(dis?' disabled':'')+'>'+w.icon+'<span class="wn"><span class="num">'+num+'</span>'+w.name+'</span><span class="wo">'+w.weapon+(stats.cleared[k]?' ✓':'')+'</span></button>';
+  });
+  $('rack').innerHTML=h;
+}
+function renderTabs(){
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.setAttribute('aria-selected',String(b.getAttribute('data-s')===S.screen));});
+  ['armory','trainer','range'].forEach(function(s){$('s-'+s).hidden=(s!==S.screen);});
+}
+function renderArmory(){
+  var t=S.weapon,w=LV[t];
+  $('wall-big').innerHTML=wallHTML(t,true);
+  var s=wstat(t);
+  $('a-acc').textContent=s.shots?'Accuracy on '+w.name+': '+Math.round(100*s.hits/s.shots)+'% over '+s.shots+' shots.':'No shots yet on '+w.name+'.';
+}
+function renderTrainer(){
+  var L=LESSON[S.weapon],i=S.lesson;
+  $('t-say').textContent=L[i].say;$('t-show').innerHTML=L[i].show;
+  $('t-count').textContent=LV[S.weapon].name+' lesson · '+(i+1)+' of '+L.length;
+  $('t-prev').disabled=(i===0);
+  $('t-next').textContent=i===L.length-1?'Go to the range':'Next';
+}
+function renderScore(){
+  var el=$('r-score');if(!el||!run)return;
+  el.textContent='Score '+run.score+' · combo '+run.combo+' · shots '+run.hits+'/'+run.shots;
+}
+function basicsDisplay(p){
+  var A=MAT(p.A.map(function(v){return f(v);}),2),B=MAT(p.B.map(function(v){return f(v);}),2),V=MAT(p.v.map(function(v){return f(v);}),1);
+  var l=function(s){return '<span class="lhs">'+s+'</span>';};
+  if(p.op==='scalar')return l('k =')+'<span class="given">'+f(p.k)+'</span>'+l('A =')+A;
+  if(p.op==='matvec')return l('A =')+A+l('v =')+V;
+  return l('A =')+A+l('B =')+B;
+}
+function renderBench(){
+  var el=$('bench');if(!el||!run)return;
+  var p=run.p,b=run.b,st=curStage()||{},h='';
+  if(p.kind==='quiz'){
+    h+='<div class="brow"><span class="blab">Answer</span><div class="bval"><div class="eqrow"><span class="slot'+(b.choice?' filled':' on')+'" style="min-width:180px">'+(b.choice?p.choice.answer:'?')+'</span></div></div></div>';
+    el.innerHTML=h;return;
+  }
+  if(p.kind==='basics'){
+    h+='<div class="brow"><span class="blab">Problem</span><div class="bval"><div class="eqrow">'+basicsDisplay(p)+'</div></div></div>';
+  }else{
+    h+='<div class="brow"><span class="blab">Formula</span><div class="bval">';
+    ['x','y'].forEach(function(ax){
+      var fm=p.formula[ax],cur=b['f'+ax];
+      h+='<div class="eqrow"><span class="lhs">'+ax+PRIME+' =</span>';
+      if(run.mode==='calc'){h+='<span class="given">'+fm.seq.join(' ')+'</span>';}
+      else fm.seq.forEach(function(tok,i){
+        var filled=i<cur.length,on=st.k==='formula'&&st.ax===ax&&i===cur.length;
+        h+='<span class="slot'+(filled?' filled':'')+(on?' on':'')+'">'+(filled?cur[i]:'')+'</span>';
+      });
+      h+='</div>';
+    });
+    h+='</div></div>';
+    if(run.mode!=='formula'){
+      var cells=p.cells.map(function(c,i){
+        var v=b.cells[i],on=st.k==='cell'&&st.i===i;
+        return '<span class="mc slotc'+(v!==null?' filled':'')+(on?' on':'')+'">'+(v!==null?f(v):'?')+'</span>';
+      });
+      h+='<div class="brow"><span class="blab">Matrix</span><div class="bval"><div class="eqrow"><span class="lhs">P'+PRIME+' =</span>';
+      if(p.kind==='mat')h+='<span class="mat" style="--c:2">'+cells.join('')+'</span><span class="op">'+DOT+'</span>'+MAT([f(p.x),f(p.y)],1);
+      else h+=MAT([f(p.x),f(p.y)],1)+'<span class="op">+</span><span class="mat" style="--c:1">'+cells.join('')+'</span>';
+      h+='</div></div></div>';
+    }
+  }
+  if(p.kind==='basics'||run.mode!=='formula'){
+    var ready=b.cells.every(function(v){return v!==null;});
+    h+='<div class="brow"><span class="blab">Calculate</span><div class="bval">';
+    p.results.forEach(function(r,i){
+      var val=b.r[i],on=st.k==='result'&&st.i===i;
+      h+='<div class="eqrow"><span class="lhs">'+r.label+' =</span>'+(ready?'<span class="given">'+r.working+' =</span>':'<span class="given dim">...</span>')+'<span class="slot'+(val!==null?' filled':'')+(on?' on':'')+'">'+(val!==null?f(val):'?')+'</span></div>';
+    });
+    h+='</div></div>';
+  }
+  el.innerHTML=h;
+}
+function solutionHTML(){
+  var p=run.p,h='<div class="sol">';
+  if(p.kind==='quiz')return h+'Answer: <b>'+p.choice.answer+'</b><br><span class="muted" style="font-family:var(--font-body)">'+p.choice.why+'</span></div>';
+  if(p.kind==='basics'){
+    p.results.forEach(function(r){h+=r.label+' = '+r.working+' = <b>'+f(r.ans)+'</b><br>';});
+    return h+'Result: '+MAT(p.results.map(function(r){return f(r.ans);}),p.results.length===2?1:2)+'</div>';
+  }
+  ['x','y'].forEach(function(ax){h+=ax+PRIME+' = '+p.formula[ax].seq.join(' ')+'<br>';});
+  if(run.mode!=='formula'){
+    p.results.forEach(function(r){h+=r.label+' = '+r.working+' = <b>'+f(r.ans)+'</b><br>';});
+    h+='P'+PRIME+' = ('+f(p.results[0].ans)+', '+f(p.results[1].ans)+')';
+  }
+  return h+'</div>';
+}
+function setupHTML(){
+  var wk=S.weapon,W=LV[wk],isW=wk==='whole';
+  var intro=isW?'One problem from each of the 8 levels, in chapter order.':
+    wk==='pipeline'||wk==='overview'?'Shoot the right answer plaque. Five questions.':
+    wk==='basics'?'Calculate the matrix results. Shoot the right number for each cell. Four problems.':
+    'Shoot the correct pieces and numbers as they cross the range. Every wrong shot gets a reason from the coach.';
+  var h='<h2>'+(isW?'Whole chapter':W.name)+' · '+W.weapon+'</h2><p class="muted" style="margin:0 0 6px">'+intro+'</p>';
+  if(isT(wk)){
+    h+='<p class="lab" style="margin-top:12px">Drill</p><div class="chips">'+
+    [['full','Full: formula, matrix, answer'],['formula','Formula only'],['calc','Calculate only']].map(function(o){return '<input type="radio" name="drill" id="d-'+o[0]+'" value="'+o[0]+'"'+(S.mode===o[0]?' checked':'')+'><label for="d-'+o[0]+'">'+o[1]+'</label>';}).join('')+'</div>';
+  }
+  h+='<div class="check"><input type="checkbox" id="wallchk"'+(S.wall?' checked':'')+'><label for="wallchk">Wall visible (cover it for double points)</label></div>'+
+  '<div class="actions" style="margin-top:0"><button type="button" class="btn primary" id="go">Start run</button><span class="muted">'+(isW?'8 problems':W.run+' problems')+'</span></div>';
+  return h;
+}
+function renderTop(){
+  var top=$('r-top'),bot=$('r-bottom');
+  if(S.phase==='idle'){
+    var wt=S.weapon==='whole'?'pipeline':S.weapon;
+    top.innerHTML=setupHTML();bot.innerHTML='<div class="wall wallmini">'+wallHTML(wt,false)+'</div>';return;
+  }
+  if(S.phase==='play'){
+    var p=run.p;
+    top.innerHTML='<div class="missionbar"><p class="mission">'+p.statement+'</p><p class="score" id="r-score"></p></div><p class="score" style="margin:2px 0 0">Problem '+(run.idx+1)+' of '+run.queue.length+' · '+LV[p.type].name+'</p><div class="bench" id="bench"></div><p class="coachline" id="coach" aria-live="polite"></p><div class="actions" style="margin-top:0"><button type="button" class="btn" id="hintb">Ask the coach (-3)</button><button type="button" class="btn" id="skipb">Skip</button><button type="button" class="btn" id="quitb">Quit run</button></div>';
+    bot.innerHTML=S.wall?'<div class="wall wallmini">'+wallHTML(p.type,false)+'</div>':'<p class="muted wallmini">Wall covered. Double points.</p>';
+    renderBench();renderScore();return;
+  }
+  if(S.phase==='clear'){
+    var last=run.idx>=run.queue.length-1;
+    top.innerHTML='<h2>Cleared</h2><p style="margin:0 0 8px">'+run.p.statement+'</p>'+solutionHTML()+'<div class="actions"><button type="button" class="btn primary" id="nextb">'+(last?'See results':'Next problem')+'</button><span class="muted">Score '+run.score+'</span></div>';
+    bot.innerHTML='';return;
+  }
+  if(S.phase==='end'){
+    var acc=run.shots?Math.round(100*run.hits/run.shots):0,rows='',worst=null,wa=101;
+    LEVELS.forEach(function(k){
+      var r=run.byType[k];if(!r)return;
+      var a=Math.round(100*r.hits/r.shots);
+      rows+='<li><span>'+LV[k].name+' · '+LV[k].weapon+'</span><span>'+a+'% ('+r.hits+'/'+r.shots+')'+(stats.cleared[k]?' ✓':'')+'</span></li>';
+      if(a<wa){wa=a;worst=k;}
+    });
+    var nxt=run.whole?null:nextLevelOf(S.weapon);
+    top.innerHTML='<h2>Run complete</h2><p style="margin:0">Score <b>'+run.score+'</b> · accuracy <b>'+acc+'%</b> ('+run.hits+' of '+run.shots+' shots)</p><p class="muted" style="margin:2px 0 0">A level gets a tick when accuracy reaches 70%.</p><ul class="sumlist">'+rows+'</ul>'+
+      (worst&&wa<100?'<p>Weakest level: <b>'+LV[worst].name+'</b>. Go back to its lesson, then shoot it again.</p>':'<p>Clean run.</p>')+
+      '<div class="actions"><button type="button" class="btn primary" id="again">Run again</button>'+(worst&&wa<100?'<button type="button" class="btn" id="tweak" data-w="'+worst+'">Train '+LV[worst].name+'</button>':'')+(nxt?'<button type="button" class="btn" id="nextlv" data-w="'+nxt+'">Next level: '+LV[nxt].name+'</button>':'')+'</div>';
+    bot.innerHTML='';
+  }
+}
+function render(){renderRack();renderTabs();renderBest();if(S.screen==='armory')renderArmory();if(S.screen==='trainer')renderTrainer();if(S.screen==='range'){renderTop();if(S.phase==='idle')idleTargets();}}
+function go(s){
+  if(S.phase==='play'&&s!=='range'){quitRun();}
+  S.screen=s;
+  if(s!=='range'&&S.weapon==='whole')S.weapon=S.last;
+  if(s==='trainer')S.lesson=0;
+  if(s==='range'&&(S.phase==='clear'||S.phase==='end')){S.phase='idle';run=null;$('rack').classList.remove('locked');}
+  render();
+}
+function setWeapon(k){
+  if(S.phase==='play')return;
+  S.weapon=k;if(k!=='whole')S.last=k;S.lesson=0;
+  if(S.phase==='clear'||S.phase==='end'){S.phase='idle';run=null;}
+  render();
+}
+function openLevel(k,screen){S.phase='idle';run=null;$('rack').classList.remove('locked');S.weapon=k;S.last=k;S.lesson=0;go(screen);}
+
+/* ---------- events ---------- */
+$('rack').addEventListener('click',function(e){var b=e.target.closest('.wp');if(b&&!b.disabled)setWeapon(b.getAttribute('data-w'));});
+$('tabs').addEventListener('click',function(e){var b=e.target.closest('.tab');if(b)go(b.getAttribute('data-s'));});
+$('a-train').addEventListener('click',function(){go('trainer');});
+$('a-range').addEventListener('click',function(){go('range');});
+$('t-prev').addEventListener('click',function(){if(S.lesson>0){S.lesson--;renderTrainer();}});
+$('t-next').addEventListener('click',function(){var L=LESSON[S.weapon];if(S.lesson<L.length-1){S.lesson++;renderTrainer();}else go('range');});
+$('r-top').addEventListener('click',function(e){
+  var id=e.target.id;
+  if(id==='go')startRun();
+  else if(id==='hintb')hint();
+  else if(id==='skipb')skipProblem();
+  else if(id==='quitb')quitRun();
+  else if(id==='nextb')nextProblem();
+  else if(id==='again'){S.phase='idle';run=null;startRun();}
+  else if(id==='tweak')openLevel(e.target.getAttribute('data-w'),'trainer');
+  else if(id==='nextlv')openLevel(e.target.getAttribute('data-w'),'trainer');
+});
+$('r-top').addEventListener('change',function(e){
+  if(e.target.name==='drill')S.mode=e.target.value;
+  if(e.target.id==='wallchk'){S.wall=e.target.checked;renderTop();}
+});
+window.addEventListener('resize',function(){if(S.screen==='range'&&S.phase==='idle')idleTargets();});
+render();
+})();
+</script>
+</body>
+</html>
